@@ -1,0 +1,36 @@
+# 📌 SHAP Interpretation for Customer Churn
+# Use SHAP values to explain XGBoost model predictions and identify key churn drivers.
+# 📦 Import Libraries
+import shap
+import pandas as pd
+import matplotlib.pyplot as plt
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+# 📂 Load Data & Preprocess
+url = 'https://raw.githubusercontent.com/blastchar/telco-customer-churn/master/WA_Fn-UseC_-Telco-Customer-Churn.csv'
+df = pd.read_csv(url)
+
+# Clean and encode
+df = df[df['TotalCharges'] != ' ']
+df['TotalCharges'] = df['TotalCharges'].astype(float)
+df['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})
+df.drop('customerID', axis=1, inplace=True)
+
+# One-hot encode
+df_encoded = pd.get_dummies(df, drop_first=True)
+X = df_encoded.drop('Churn', axis=1)
+y = df_encoded['Churn']
+
+# Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# 🤖 Train XGBoost Model
+model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+model.fit(X_train, y_train)
+# 🔍 SHAP Values & Summary Plot
+explainer = shap.Explainer(model, X_test)
+shap_values = explainer(X_test)
+
+# Summary Plot
+shap.summary_plot(shap_values, X_test)
+# 📈 SHAP Bar Plot (Top Features)
+shap.plots.bar(shap_values)
